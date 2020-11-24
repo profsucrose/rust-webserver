@@ -36,7 +36,6 @@ fn handle_connection(mut stream: TcpStream) {
 
     let mut filepath = String::new();
     for &c in buffer.iter().skip(4) {
-        println!("c: {}", c as char);
         if c == (' ' as u8) {
             if filepath.as_bytes()[filepath.len() - 1] == b'/' {
                 filepath.push_str("index");
@@ -46,20 +45,24 @@ fn handle_connection(mut stream: TcpStream) {
         filepath.push(c as char);
     }
 
-    if Path::new(&format!("pages{}", filepath)).exists()
-            && !Path::new(&format!("pages/{}.html", filepath)).exists() {
+    if Path::new(&format!("views/pages{}", filepath)).exists()
+            && !Path::new(&format!("views/pages/{}.html", filepath)).exists() {
         filepath.push_str("/index");
     }
 
-    println!("Filepath: {}", filepath);
-    let contents = fs::read_to_string(get_page_path(filepath)).unwrap();
-
-    let response = format!("HTTP/1.1 200 OK\r\n\r\n{}", contents);
+    let response;
+    if !Path::new(&get_page_path(&filepath)).exists() {
+        let contents = fs::read_to_string("views/404.html").unwrap();
+        response = format!("HTTP/1.1 404 NOT FOUND\r\n\r\n{}", &contents);
+    } else {
+        let contents = fs::read_to_string(get_page_path(&filepath)).unwrap();
+        response = format!("HTTP/1.1 200 OK\r\n\r\n{}", &contents);
+    }
 
     stream.write(response.as_bytes()).unwrap();
     stream.flush().unwrap();
 }
 
-fn get_page_path(filename: String) -> String {
-    format!("pages/{}.html", filename)
+fn get_page_path(filename: &String) -> String {
+    format!("views/pages{}.html", filename)
 }
